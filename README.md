@@ -1,27 +1,19 @@
-# YmapsLearn
+# Изучение YandexMaps
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.3.
+## Решение проблемы с CORS-policy
 
-## Development server
+1. В своей ОС в файл `hosts` необходимо добавить `localhost.ru`.
+    - В ОС Windows в файл `С:/Windows/System32/drivers/etc/hosts` добавить строчку:
+    ```
+      127.0.0.1 localhost.ru
+    ```
+    - В ОС Linux и Mac OS обозначенную выше строчку нужно добавить в файл: `etc/hosts`;
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+2. Запустить локальный сервер проекта с помощью команды:
+```bash
+npm start
+```
 
-## Code scaffolding
+3. Для просмотра приложения использовать домен: `http://localhost.ru`;
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
-
-## Build
-
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+4. В настройках api-токена - в поле "Ограничение по HTTP Referer" необходимо указать наш домен без протокола: `localhost.ru`.
