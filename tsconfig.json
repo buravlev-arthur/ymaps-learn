@@ -30,6 +30,9 @@
     "paths": {
       "ymaps3": [
         "./node_modules/@yandex/ymaps3-types"
+      ],
+      "ymaps3/clusterer": [
+        "./node_modules/@yandex/ymaps3-clusterer"
       ]
     }
   },
