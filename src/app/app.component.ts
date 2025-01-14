@@ -1,21 +1,18 @@
 import { Component, OnInit, viewChild } from '@angular/core';
-import type { Signal,  ElementRef } from '@angular/core';
-import type { YMap, YMapLocationRequest, YMapFeature  } from 'ymaps3';
-import { YMapClusterer, clusterByGrid, type Feature } from 'ymaps3/clusterer';
-import {
-  BOUNDS,
-  LOCATION,
-  MARGIN,
-  getRandomPoints as getRandomPointsCluster,
-  marker,
-  cluster
-} from './cluster-change-control.class';
-import {
-  getRandomPoints as getRandomPointsHeatmap,
-  getDefaultMapProps,
-  getHeatmapImpl
-} from './heatmap-gl-impl';
+import { Signal,  ElementRef } from '@angular/core';
+import { load } from '@2gis/mapgl';
+import * as mapgl from '@2gis/mapgl/types/index'; 
+import type { Map } from '@2gis/mapgl/types/map';
+import type { Marker } from '@2gis/mapgl/types/objects/marker';
+import type { GeoJsonSource } from '@2gis/mapgl/types/sources/geoJsonSource';
+import heatmapData from './heatmapData';
+import { Feature, FeatureCollection } from 'geojson';
+import type { Layer } from '@2gis/mapgl/types/types/styles';
+import { Clusterer } from '@2gis/mapgl-clusterer';
+import type { InputMarker } from '@2gis/mapgl-clusterer';
+import markers from './markers';
 
+type MapglAPI = typeof mapgl;
 
 @Component({
   selector: 'app-root',
@@ -25,61 +22,102 @@ import {
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
-  mapHTMLContainer: Signal<ElementRef | undefined> = viewChild<ElementRef>('ymap')
-  initLocation: YMapLocationRequest = {
-    center: [37.588144, 55.733842],
-    zoom: 9
-  };
-  map: YMap | undefined;
-  pointsCount: number = 100;
-  points: Feature[] = [];
-  markers: YMapFeature[] = [];
+  mapHTMLContainer: Signal<ElementRef | undefined> = viewChild<ElementRef>('map');
+  mapgl: MapglAPI | null = null;
+  map: Map | null = null;
+
+  private readonly GISKey = '79f33f23-38ba-4c7b-b375-7026497fc371';
 
   async ngOnInit(): Promise<void> {
-    await ymaps3.ready;
-
-    this.points = getRandomPointsCluster(this.pointsCount, BOUNDS);
-
-    this.map = new ymaps3.YMap(
+    this.mapgl = await load();
+    
+    this.map = new this.mapgl.Map(
       this.mapHTMLContainer()?.nativeElement,
       {
-        location: LOCATION,
-        margin: MARGIN,
-        showScaleInCopyrights: false,
-        projection: getDefaultMapProps().projection // for WebGL working
-      },
-      [
-        new ymaps3.YMapDefaultSchemeLayer({}),
-        new ymaps3.YMapDefaultFeaturesLayer({})
-      ]
+        center: [55.31878, 25.23584],
+        zoom: 13,
+        key: this.GISKey,
+      }
     );
 
-    /* We create a clusterer object and add it to the map object.
-      As parameters, we pass the clustering method, an array of features, the functions for rendering markers and clusters.
-      For the clustering method, we will pass the size of the grid division in pixels.
-    */
-    const clusterer = new YMapClusterer({
-      method: clusterByGrid({ gridSize: 64 }),
-      features: this.points,
-      marker,
-      cluster: cluster(this.map)
+    // this.addMarker([55.31878, 25.23584]);
+    this.addHeatmap(heatmapData); 
+    this.addClusterer(markers);
+  }
+
+  // пример добавления маркера на карту
+  addMarker(coordinates: number[]): Marker | void {
+    if (!this.mapgl || !this.map) {
+      return;
+    }
+
+    return new this.mapgl.Marker(this.map, {
+      coordinates,
+    });
+  }
+
+  // пример добавления тепловой карты на карту
+  // docs: https://docs.2gis.com/ru/mapgl/map-style/examples/heatmap
+  addHeatmap(data: FeatureCollection | Feature): void {
+    if (!this.mapgl || !this.map) {
+      return;
+    }
+
+    const source: GeoJsonSource = new this.mapgl.GeoJsonSource(this.map, {
+      data,
+      attributes: {
+        purpose: 'heatmap'
+      }
     });
 
-    this.map.addChild(clusterer);
+    const layer: Layer = {
+      id: 'my-heatmap-layer',
+      filter: [
+        'match',
+        ['sourceAttr', 'purpose'],
+        ['heatmap'],
+        true,
+        false
+      ],
+      type: 'heatmap',
+      style: {
+        color: [
+          'interpolate',
+          ['linear'],
+          ['heatmap-density'],
+          0,
+          'rgba(0, 153, 255, 0)',
+          0.2,
+          'rgb(32, 172, 74)',
+          0.4,
+          'rgb(115, 255, 0)',
+          0.6,
+          'rgba(255, 252, 0, 1)',
+          0.8,
+          'rgb(255, 153, 0)',
+          1,
+          'rgb(255, 0, 0)',
+        ],
+        radius: 50,
+        weight: ['get', 'customProperty'],
+        intensity: 0.8,
+        opacity: 0.8,
+        downscale: 1
+      },
+    };
 
-    /* Heatmap Layer */
-    const points = getRandomPointsHeatmap(1500);
+    this.map.on('styleload', () => {
+      this.map?.addLayer(layer);
+    });
+  }
 
-    this.map.addChild(
-      new ymaps3.YMapLayer({
-        id: 'heatmap',
-        type: 'custom',
-        zIndex: 1201,
-        grouppedWith: `${ymaps3.YMapDefaultSchemeLayer.defaultProps.source}:buildings`,
-        source: ymaps3.YMapDefaultSchemeLayer.defaultProps.source,
-        implementation: ({ effectiveMode }: { effectiveMode: string }) =>
-          effectiveMode === 'vector' ? getHeatmapImpl(getDefaultMapProps().projection, () => points) : undefined
-        })
-      );
+  // Пример добавления кластера
+  // docs: https://docs.2gis.com/ru/mapgl/objects/clustering
+  addClusterer(markers: InputMarker[]): void {
+    const clusterer = new Clusterer(this.map, {
+      radius: 60,
+    });
+
+    clusterer.load(markers);
   }
 }
