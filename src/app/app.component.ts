@@ -9,7 +9,7 @@ import heatmapData from './heatmapData';
 import { Feature, FeatureCollection } from 'geojson';
 import type { Layer } from '@2gis/mapgl/types/types/styles';
 import { Clusterer } from '@2gis/mapgl-clusterer';
-import type { InputMarker } from '@2gis/mapgl-clusterer';
+import type { InputMarker, ClustererPointerEvent } from '@2gis/mapgl-clusterer';
 import markers from './markers';
 
 type MapglAPI = typeof mapgl;
@@ -119,5 +119,24 @@ export class AppComponent implements OnInit {
     });
 
     clusterer.load(markers);
+
+    clusterer.on('click', (event: ClustererPointerEvent): void => {
+      if (event.target.type === 'cluster') {
+        this.map?.setCenter(event.lngLat,
+          {
+            easing: 'easeOutCubic',
+            duration: 800
+          });
+
+        this.map?.setZoom(
+          clusterer.getClusterExpansionZoom(event.target.id),
+          {
+            easing: 'easeOutCubic',
+            useHeightForAnimation: true,
+            duration: 800
+          }
+        );
+      }
+    });
   }
 }
