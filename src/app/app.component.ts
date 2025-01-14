@@ -37,6 +37,7 @@ export class AppComponent implements OnInit {
         center: [55.31878, 25.23584],
         zoom: 13,
         key: this.GISKey,
+        lang: 'ru'
       }
     );
 
